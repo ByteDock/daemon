@@ -1,5 +1,5 @@
 import { BaseHelper } from "../interfaces/BaseHelper";
-import Docker, { Container, ContainerCreateOptions, ContainerInspectInfo } from 'dockerode';
+import Docker, { Container, ContainerCreateOptions, ContainerInspectInfo, GetEventsOptions, Network, Volume, VolumeInspectInfo } from 'dockerode';
 
 export class DockerHelper implements BaseHelper {
     private docker: Docker;
@@ -14,8 +14,7 @@ export class DockerHelper implements BaseHelper {
 
     async createContainer(options: ContainerCreateOptions): Promise<Container> {
         try {
-            const container = this.docker.createContainer(options);
-            return container;
+            return this.docker.createContainer(options);
         } catch(error) {
             console.error(`Error creating container: ${error}`);
             throw error;
@@ -121,6 +120,107 @@ export class DockerHelper implements BaseHelper {
         } catch(error) {
             console.error(`Error removing image ${imageName}: ${error}`);
             throw error;
+        }
+    }
+
+    async createNetwork(options: Docker.NetworkCreateOptions): Promise<Network> {
+        try {
+            return await this.docker.createNetwork(options);
+        } catch(error) {
+            console.error(`Error creating network: ${error}`);
+            throw error;
+        }
+    }
+
+    async listNetworks(): Promise<Docker.NetworkInspectInfo[]> {
+        try {
+            return await this.docker.listNetworks();
+        } catch(error) {
+            console.error(`Error fetching networks: ${error}`);
+            throw error;
+        }
+    }
+
+    async inspectNetwork(networkId: string): Promise<Docker.NetworkInspectInfo> {
+        try {
+            const network = this.docker.getNetwork(networkId);
+            return await network.inspect();
+        } catch(error) {
+            console.error(`Error inspecting network: ${error}`);
+            throw error;
+        }
+    }
+
+    async removeNetwork(networkId: string): Promise<void> {
+        try {
+            const network = this.docker.getNetwork(networkId);
+            await network.remove();
+        } catch(error) {
+            console.error(`Error removing network: ${error}`);
+            throw error;
+        }
+    }
+
+    async createVolume(options: Docker.VolumeCreateOptions): Promise<Volume> {
+        try {
+            const volumeData = await this.docker.createVolume(options);
+            return this.docker.getVolume(volumeData.Name);
+        } catch(error) {
+            console.error(`Error creating volume: ${error}`);
+            throw error;
+        }
+    }
+
+    async listVolumes(): Promise<VolumeInspectInfo[]> {
+        try {
+            const volumes = await this.docker.listVolumes();
+            return volumes.Volumes;
+        } catch(error) {
+            console.error(`Error listing volumes: ${error}`);
+            throw error;
+        }
+    }
+
+    async removeVolume(volumeName: string): Promise<void> {
+        try {
+            const volume = this.docker.getVolume(volumeName);
+            await volume.remove();
+        } catch(error) {
+            console.error(`Error removing volume: ${error}`);
+            throw error;
+        }
+    }
+
+    async execInContainer(containerId: string, cmd: string[]): Promise<void> {
+        try {
+            const container = this.docker.getContainer(containerId);
+            const exec = await container.exec({
+                Cmd: cmd,
+                AttachStdout: true,
+                AttachStderr: true
+            });
+            await exec.start({});
+        } catch(error) {
+            console.error(`Error executing command: ${error}`);
+            throw error;
+        }
+    }
+
+    async streamEvents(options: GetEventsOptions): Promise<NodeJS.ReadableStream> {
+        try {
+            return this.docker.getEvents(options);
+        } catch(error) {
+            console.error(`Error getting events: ${error}`);
+            throw error;
+        }
+    }
+
+    async checkHealth(): Promise<boolean> {
+        try {
+            await this.docker.ping();
+            return true;
+        } catch {
+            return false;
         }
     }
 }
