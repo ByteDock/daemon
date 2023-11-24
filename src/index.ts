@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
 import dotenv from 'dotenv';
+import http from 'http';
 import { BaseHelper } from './interfaces/BaseHelper';
 import { Path } from './interfaces/Path';
 
@@ -44,7 +45,9 @@ function loadRoutes(dir: string, routePrefix: string = '') {
 
 loadRoutes(path.join(__dirname, 'paths'));
 
-const server = app.listen(port, host, () => {
+const s = http.createServer(app);
+
+const server = s.listen(port, host, () => {
     console.log(`Daemon running on http://${host}:${port}`);
 });
 
@@ -58,4 +61,4 @@ server.on('error', (error: NodeJS.ErrnoException) => {
     }
 });
 
-export default app;
+export default server;
