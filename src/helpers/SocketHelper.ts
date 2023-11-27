@@ -12,7 +12,7 @@ interface SchemaIndex {
 
 let schemas: SchemaIndex = {};
 
-let methods: Map<string, (args: ZodTypeAny) => void> = new Map();
+let methods: Map<string, (ws: WebSocket.connection, args: ZodTypeAny) => void> = new Map();
 
 fs.readdirSync(path.join(__dirname, '..', 'sockets')).forEach(file => {
     import(path.join(__dirname, '..', 'sockets', file)).then((socketModule: SocketModule) => {
@@ -24,7 +24,7 @@ fs.readdirSync(path.join(__dirname, '..', 'sockets')).forEach(file => {
 export declare namespace _Socket {
     type Listener = <T extends keyof Events>(
         event: T, 
-        callback: (args: Events[T]) => void
+        callback: (ws: WebSocket.connection, args: Events[T]) => void
     ) => void;
 
     type Emitter = <T extends keyof Events>(
@@ -37,16 +37,18 @@ export declare namespace _Socket {
     };
 }
 
-export default class SocketHelper implements BaseHelper {
+export class SocketHelper implements BaseHelper {
     private server: WebSocket.server;
 
     private clients: WebSocket.connection[] = [];
-    private listeners: Map<keyof _Socket.Events, ((...args: ZodTypeAny[]) => void)[]> = new Map();
+    private listeners: Map<keyof _Socket.Events, ((ws: WebSocket.connection, args: ZodTypeAny) => void)[]> = new Map();
 
     constructor() {
         this.server = new WebSocket.server({httpServer: server});
         this.server.on('connect', (ws: WebSocket.connection) => {
-            ws.on('message', (msg) => this.handleMessage(msg));
+            console.log(`${new Date()} Peer ${ws.remoteAddress} connected`);
+            ws.on('message', (msg) => this.handleMessage(ws, msg));
+            ws.on('close', (rC, d) => console.log(`${new Date()} Peer ${ws.remoteAddress} disconnected.`));
             this.clients.push(ws);
         });
     }
@@ -56,7 +58,7 @@ export default class SocketHelper implements BaseHelper {
         console.log('Socket Helper initialized');
     }
 
-    private handleMessage(msg: WebSocket.Message) {
+    private handleMessage(ws: WebSocket.connection, msg: WebSocket.Message) {
         try {
             if (msg.type !== 'utf8') return;
             const data = JSON.parse(msg.utf8Data);
@@ -68,7 +70,7 @@ export default class SocketHelper implements BaseHelper {
 
             const listener = this.listeners.get(event);
             if (!listener) return;
-            listener.forEach((l) => l(...payload));
+            listener.forEach((l) => l(ws, payload));
         } catch(error) {
             console.error(`Failed to handle socket event: ${error}`);
             throw error;

@@ -1,3 +1,4 @@
+import * as WebSocket from "websocket";
 import { z } from "zod";
 
 const EventName = "testEvent";
@@ -8,7 +9,7 @@ const EventSchema = z.object({
 
 type Event = z.infer<typeof EventSchema>;
 
-const EventHandler = (args: Event) => {
+const EventHandler = (ws: WebSocket.connection, args: Event) => {
     console.log(`Message received: ${args.message}`);
 };
 
