@@ -64,13 +64,13 @@ function loadRoutes(dir: string, routePrefix = '') {
         if (file.isDirectory()) {
             loadRoutes(fullPath, `${routePrefix}/${file.name}`);
         } else if (file.isFile() && path.extname(file.name) === '.ts' && file.name !== 'index.ts') {
-            const route = require(fullPath);
+            const route = require(fullPath) as Path;
             if (route.setupHelpers) route.setupHelpers(helpers);
             const routerPath = `${routePrefix}/${path.basename(file.name, '.ts')}`;
             app.use(routerPath, route.default);
             logRoutes(route.default, routerPath);
         } else if (file.isFile() && file.name === 'index.ts') {
-            const route = require(fullPath);
+            const route = require(fullPath) as Path;
             if (route.setupHelpers) route.setupHelpers(helpers);
             app.use(routePrefix === '' ? '/' : routePrefix, route.default);
             logRoutes(route.default, routePrefix);
